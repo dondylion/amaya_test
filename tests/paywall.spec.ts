@@ -9,6 +9,7 @@ for (const width of [320, 360, 390, 430, 1280]) {
     await expect(page.getByRole('button', { name: 'Открыть за 1 990 ₽ / год' })).toBeEnabled()
     await page.evaluate(() => document.fonts.ready)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+    await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(255, 252, 245)')
     const hero = await page.locator('.hero-art img').boundingBox()
     expect(hero?.height).toBeGreaterThan(130)
     const button = await page.locator('.buy-button').boundingBox()
@@ -43,6 +44,47 @@ test('restore works after reload and reports no purchase on a fresh device', asy
   await page.reload()
   await page.getByRole('button', { name: 'Восстановить покупки' }).click()
   await expect(page.getByRole('heading', { name: 'Покупка восстановлена' })).toBeVisible()
+})
+
+for (const action of ['Здорово!', 'Вернуться к тарифам']) {
+  test(`${action} reloads offers and displays fresh prices`, async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Открыть за 1 990 ₽ / год' }).click()
+    await expect(page.getByRole('heading', { name: 'Покупка сохранена' })).toBeVisible()
+    let release: () => void = () => {}
+    const hold = new Promise<void>((resolve) => { release = resolve })
+    let requests = 0
+    await page.route('**/api/offers', async route => {
+      requests++
+      const response = await route.fetch()
+      const data = await response.json()
+      data.offers[0].price = 2100
+      await hold
+      await route.fulfill({ response, json: data })
+    })
+    await page.getByRole('button', { name: action, exact: true }).click()
+    await expect(page.getByRole('status')).toHaveText('Загружаем тарифы…')
+    await expect(page.locator('.buy-button')).toBeDisabled()
+    release()
+    await expect(page.getByRole('button', { name: 'Открыть за 2 100 ₽ / год' })).toBeEnabled()
+    await expect(page.getByRole('radio', { name: 'На год, 2 100 рублей' })).toBeChecked()
+    expect(requests).toBe(1)
+  })
+}
+
+test('offer reload failure after returning can be retried', async ({ page }) => {
+  await page.goto('/')
+  await page.getByText('На месяц', { exact: true }).click()
+  await page.getByRole('button', { name: 'Открыть за 299 ₽ / месяц' }).click()
+  await expect(page.getByRole('heading', { name: 'Покупка сохранена' })).toBeVisible()
+  await page.route('**/api/offers', route => route.fulfill({ status: 503, json: {} }))
+  await page.getByRole('button', { name: 'Вернуться к тарифам' }).click()
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить тарифы')
+  await expect(page.locator('.buy-button')).toBeDisabled()
+  await page.unroute('**/api/offers')
+  await page.getByRole('button', { name: 'Попробовать ещё раз' }).click()
+  await expect(page.getByRole('radio', { name: 'На месяц, 299 рублей' })).toBeChecked()
+  await expect(page.getByRole('button', { name: 'Открыть за 299 ₽ / месяц' })).toBeEnabled()
 })
 
 test('loading blocks duplicate purchases; error preserves selection and permits retry', async ({ page }) => {

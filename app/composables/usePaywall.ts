@@ -21,7 +21,7 @@ export function usePaywall() {
   watch(selectedId, () => { message.value = '' })
 
   async function buy() {
-    if (busy.value || !selected.value) return
+    if (busy.value || loading.value || offersError.value || !selected.value) return
     operation.value = 'purchase'
     message.value = ''
     const offer = selected.value
@@ -68,10 +68,11 @@ export function usePaywall() {
     finally { operation.value = null }
   }
 
-  function returnToOffers() {
+  async function returnToOffers() {
     if (completed.value) selectedId.value = completed.value.offerId
     completed.value = null
     message.value = ''
+    await refresh()
   }
 
   return { offers, selectedId, selected, loading, offersError, refresh, busy, operation,
