@@ -1,11 +1,12 @@
-import type { Offer, Purchase } from '../../shared/types/paywall'
+import { API, DEFAULT_OFFER_ID, REQUEST } from '#shared/constants/paywall'
+import { ru } from '#shared/content/ru'
+import type { Offer, Purchase } from '#shared/types/paywall'
 
 export function usePaywall() {
-  // Browser fetching ensures the device cookie belongs to this visitor.
-  const { data, status, error: offersError, refresh } = useFetch<{ offers: Offer[] }>('/api/offers', {
-    server: false, retry: 0, timeout: 10000,
+  const { data, status, error: offersError, refresh } = useFetch<{ offers: Offer[] }>(API.offers, {
+    server: false, retry: REQUEST.retryCount, timeout: REQUEST.offersTimeoutMs,
   })
-  const selectedId = ref('yearly')
+  const selectedId = ref<string>(DEFAULT_OFFER_ID)
   const operation = ref<'purchase' | 'restore' | null>(null)
   const completed = ref<Purchase | null>(null)
   const restored = ref(false)
@@ -16,7 +17,6 @@ export function usePaywall() {
   const busy = computed(() => operation.value !== null)
   const loading = computed(() => status.value === 'pending' || status.value === 'idle')
   const purchaseOffer = computed(() => offers.value.find(offer => offer.id === completed.value?.offerId))
-  // Reuse after network failure: the server may already have saved the purchase.
   let pendingRequest: { offerId: string, id: string } | null = null
   watch(selectedId, () => { message.value = '' })
 
@@ -29,8 +29,8 @@ export function usePaywall() {
       if (!pendingRequest || pendingRequest.offerId !== offer.id) {
         pendingRequest = { offerId: offer.id, id: crypto.randomUUID() }
       }
-      const result = await $fetch<{ purchase: Purchase }>('/api/purchase', {
-        method: 'POST', body: { offerId: offer.id, requestId: pendingRequest.id }, retry: 0, timeout: 15000,
+      const result = await $fetch<{ purchase: Purchase }>(API.purchase, {
+        method: 'POST', body: { offerId: offer.id, requestId: pendingRequest.id }, retry: REQUEST.retryCount, timeout: REQUEST.purchaseTimeoutMs,
       })
       completed.value = result.purchase
       restored.value = false
@@ -38,7 +38,7 @@ export function usePaywall() {
     }
     catch {
       messageKind.value = 'error'
-      message.value = 'Не удалось завершить покупку.\nПроверьте интернет и попробуйте ещё раз.'
+      message.value = ru.messages.purchaseError
     }
     finally { operation.value = null }
   }
@@ -48,8 +48,8 @@ export function usePaywall() {
     operation.value = 'restore'
     message.value = ''
     try {
-      const result = await $fetch<{ purchase: Purchase | null }>('/api/restore', {
-        method: 'POST', retry: 0, timeout: 15000,
+      const result = await $fetch<{ purchase: Purchase | null }>(API.restore, {
+        method: 'POST', retry: REQUEST.retryCount, timeout: REQUEST.purchaseTimeoutMs,
       })
       if (result.purchase) {
         completed.value = result.purchase
@@ -58,12 +58,12 @@ export function usePaywall() {
       }
       else {
         messageKind.value = 'info'
-        message.value = 'На этом устройстве нет активных покупок.\nВыберите тариф, чтобы открыть мир Луми.'
+        message.value = ru.messages.noPurchases
       }
     }
     catch {
       messageKind.value = 'error'
-      message.value = 'Не удалось восстановить покупки.\nПроверьте интернет и попробуйте ещё раз.'
+      message.value = ru.messages.restoreError
     }
     finally { operation.value = null }
   }

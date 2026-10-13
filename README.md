@@ -1,46 +1,34 @@
 # Луми · игровой paywall
 
-Мобильный сервис на **Nuxt 4 + Vue 3 + TypeScript**: два тарифа, тестовая покупка, подтверждение и восстановление. Реальных платежей и автопродления нет.
+Nuxt 4 + TypeScript. Выбор тарифа, тестовая покупка и восстановление. Реальные деньги не списываются.
 
-[Макет Figma](https://www.figma.com/design/RC9hRaoqDardwXCsJq2MQC/?node-id=11-2). Реализация сверена с PDF на 360/390/430 px, использует переданные SVG и локальный Nunito. Обе кнопки на экране успеха возвращают к тарифам.
+## Запуск
 
-## Локальный запуск
-
-Node.js **24.x**, npm:
+Node.js 24.x:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Открыть http://localhost:3000. Без настроек используется SQLite в `.data/lumi.sqlite`; покупки сохраняются между перезапусками. Для Neon скопировать `.env.example` в `.env`, заполнить `NUXT_DATABASE_URL` и выполнить `npm run db:migrate`. Секреты доступны только серверу.
+Адрес: http://localhost:3000. Локальная БД SQLite создаётся автоматически в `.data/lumi.sqlite`.
 
-## Структура и проверка
+Для Neon: скопировать `.env.example` в `.env`, заполнить `NUXT_DATABASE_URL` и выполнить `npm run db:migrate`. Восстановление работает в том же браузере при сохранённой cookie.
 
-- `app/` — экраны, компоненты, CSS и `usePaywall`.
-- `server/api/` — `GET /api/offers`, `POST /api/purchase`, `POST /api/restore`.
-- `server/utils/database.ts` — SQLite/Neon; `database/` — SQL-миграция PostgreSQL.
-- `shared/types/` — контракт API; `tests/` — браузерные и серверные проверки.
+## Команды
 
-```sh
-npm run lint
-npm run typecheck
-npm run build
-npx playwright install chromium
-npm test
-npm start
-```
+- `npm run build && npm start` — production-сборка и запуск.
+- `npm run lint`, `npm run typecheck` — проверка кода.
+- `npx playwright install chromium`, затем `npm test` — тесты.
+- `npm run build:vercel` — сборка для Vercel. [Деплой](docs/DEPLOY.md).
 
-Проверяются оба тарифа, запись в БД, восстановление после перезапуска, повтор запроса без дублирования, ошибки/загрузка, клавиатура и мобильные размеры. Тесты используют отдельные базы в `.cache/`; скриншоты — в `test-results/`.
+## Структура
 
-## Деплой и ограничения
+- `app/` — интерфейс; `app/assets/css/tokens.css` — параметры оформления.
+- `shared/content/ru.ts` — тексты; `shared/constants/` — общие константы.
+- `server/api/` — тарифы, покупка, восстановление.
+- `server/constants/` — настройки сервера и тарифов.
+- `server/utils/database.ts` — работа с БД; `database/` — миграция Neon.
+- `tests/` — браузерные и API-тесты.
 
-Подготовлены **Vercel + Neon**: серверный Nuxt без отдельного backend и постоянная PostgreSQL вне файловой системы функций. Обе сборки (`build`, `build:vercel`) проверены. Публичный URL и удалённый GitHub/GitLab пока отсутствуют: нужны аккаунты и доступы. [Пошаговый деплой](docs/DEPLOY.md), [результаты и ограничения](docs/VERIFICATION.md).
-
-ID устройства хранится в HttpOnly cookie. Восстановление доступно в том же браузере; после удаления cookie и на другом устройстве покупка не найдётся. Авторизация намеренно не входит в учебный сценарий.
-
-## AI и следующие шаги
-
-Использован Codex для кода, анализа PDF/SVG, документации и запуска проверок; Figma MCP оказался недоступен из-за лимита. Проверены скриншоты, ответы API, реальные записи SQLite, поведение при сбоях и сборки. Автору задания перед отправкой следует самостоятельно пройти сценарий и проверить публичный деплой.
-
-Следующие 2 часа: подключить реальные аккаунты хостинга/Neon, проверить iOS/Android webview, добавить мониторинг ошибок и ограничения частоты запросов. В транзитивных зависимостях остаются 11 предупреждений high; критические устранены обновлением `simple-git`, DevTools отключены. Подробнее — в отчёте проверки.
+[Макет Figma](https://www.figma.com/design/RC9hRaoqDardwXCsJq2MQC/?node-id=11-2).

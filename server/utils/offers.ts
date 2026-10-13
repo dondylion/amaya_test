@@ -1,29 +1,4 @@
-import type { Offer } from '../../shared/types/paywall'
-
-export const offers: Offer[] = [
-  {
-    id: 'yearly',
-    title: 'На год',
-    accessTitle: 'Годовой доступ',
-    price: 1990,
-    currency: 'RUB',
-    months: 12,
-    period: 'год',
-    description: 'Доступ на 12 месяцев. Без автопродления.',
-    badge: 'Выгоднее на 45%',
-    monthlyPrice: 166,
-  },
-  {
-    id: 'monthly',
-    title: 'На месяц',
-    accessTitle: 'Месячный доступ',
-    price: 299,
-    currency: 'RUB',
-    months: 1,
-    period: 'месяц',
-    description: 'Доступ на 1 месяц. Без автопродления.',
-  },
-]
+export { OFFERS as offers } from '../constants/offers'
 
 export function accessExpiry(date: Date, months: number): string {
   const result = new Date(date)

@@ -1,5 +1,7 @@
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { CURRENCY } from '../../shared/constants/paywall'
+import { DATABASE, SERVER_ERRORS, SERVER_MESSAGES } from '../constants/config'
 import { neon } from '@neondatabase/serverless'
 import type { DatabaseSync } from 'node:sqlite'
 import type { Purchase } from '../../shared/types/paywall'
@@ -23,7 +25,7 @@ async function sqlite() {
   if (localDb) return localDb
   const config = useRuntimeConfig()
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    throw new Error('Configure NUXT_DATABASE_URL for persistent serverless storage')
+    throw new Error(SERVER_MESSAGES.missingDatabase)
   }
   const path = resolve(config.sqlitePath)
   mkdirSync(dirname(path), { recursive: true })
@@ -31,7 +33,7 @@ async function sqlite() {
   localDb = new DatabaseSync(path)
   localDb.exec(`
     PRAGMA journal_mode = WAL;
-    PRAGMA busy_timeout = 5000;
+    PRAGMA busy_timeout = ${DATABASE.busyTimeoutMs};
     CREATE TABLE IF NOT EXISTS purchases (
       id TEXT PRIMARY KEY,
       device_id TEXT NOT NULL,
@@ -52,7 +54,7 @@ function purchase(row: PurchaseRow): Purchase {
     id: row.id,
     offerId: row.offer_id,
     amount: Number(row.amount),
-    currency: 'RUB',
+    currency: CURRENCY,
     createdAt: new Date(row.created_at).toISOString(),
     expiresAt: new Date(row.expires_at).toISOString(),
   }
@@ -81,7 +83,7 @@ export async function savePurchase(input: NewPurchase): Promise<Purchase> {
     `).get(input.id, input.deviceId, input.requestId, input.offerId, input.amount, input.createdAt, input.expiresAt) as unknown as PurchaseRow
   }
   if (row.offer_id !== input.offerId) {
-    throw createError({ statusCode: 409, statusMessage: 'Request already used for a different offer' })
+    throw createError(SERVER_ERRORS.requestConflict)
   }
   return purchase(row)
 }

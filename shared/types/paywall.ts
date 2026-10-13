@@ -1,9 +1,11 @@
+import type { CURRENCY, OFFER_IDS } from '../constants/paywall'
+
 export interface Offer {
-  id: 'yearly' | 'monthly'
+  id: typeof OFFER_IDS[number]
   title: string
   accessTitle: string
   price: number
-  currency: 'RUB'
+  currency: typeof CURRENCY
   months: number
   period: string
   description: string
@@ -15,7 +17,7 @@ export interface Purchase {
   id: string
   offerId: Offer['id']
   amount: number
-  currency: 'RUB'
+  currency: typeof CURRENCY
   createdAt: string
   expiresAt: string
 }

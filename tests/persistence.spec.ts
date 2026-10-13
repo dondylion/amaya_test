@@ -14,8 +14,7 @@ test('purchase survives a full server restart', async ({ playwright }) => {
     })
     for (let attempt = 0; attempt < 100; attempt++) {
       try { if ((await fetch('http://127.0.0.1:3101/api/offers')).ok) return }
-      catch { /* wait for startup */ }
-      await setTimeout(50)
+      catch { await setTimeout(50) }
     }
     throw new Error('Persistence test server failed to start')
   }

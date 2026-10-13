@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
+import { OFFER_IDS } from '../../shared/constants/paywall'
+import { SERVER_ERRORS } from '../constants/config'
 import { offers, accessExpiry } from '../utils/offers'
 import { deviceId, requireSameOrigin } from '../utils/device'
 import { savePurchase } from '../utils/database'
 
 const schema = z.object({
-  offerId: z.enum(['yearly', 'monthly']),
+  offerId: z.enum(OFFER_IDS),
   requestId: z.uuid(),
 }).strict()
 
@@ -29,8 +31,7 @@ export default defineEventHandler(async (event) => {
     return { purchase }
   }
   catch (error) {
-    if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409) throw error
-    // Never expose connection strings or database driver errors to the browser.
-    throw createError({ statusCode: 503, statusMessage: 'Purchase storage unavailable' })
+    if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === SERVER_ERRORS.requestConflict.statusCode) throw error
+    throw createError(SERVER_ERRORS.storageUnavailable)
   }
 })

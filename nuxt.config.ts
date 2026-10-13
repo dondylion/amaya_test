@@ -1,25 +1,30 @@
+import { APP_META, ASSETS, LANGUAGE } from './shared/constants/paywall'
+import { ru } from './shared/content/ru'
+import { DATABASE } from './server/constants/config'
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-13',
+  telemetry: false,
   devtools: { enabled: false },
   nitro: {
     vercel: { functions: { runtime: 'nodejs24.x' } },
   },
   modules: ['@nuxt/eslint'],
-  css: ['@fontsource-variable/nunito', '~/assets/css/main.css'],
+  css: ['@fontsource-variable/nunito', '~/assets/css/tokens.css', '~/assets/css/main.css'],
   runtimeConfig: {
     databaseUrl: '',
-    sqlitePath: '.data/lumi.sqlite',
+    sqlitePath: DATABASE.defaultSqlitePath,
   },
   app: {
     head: {
-      htmlAttrs: { lang: 'ru' },
-      title: 'Луми — целый мир маленьких открытий',
+      htmlAttrs: { lang: LANGUAGE },
+      title: ru.meta.title,
       meta: [
-        { name: 'description', content: 'Все миры Луми без рекламы. Выберите доступ на месяц или год — тестовая покупка без списания денег.' },
-        { name: 'theme-color', content: '#FFFCF5' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { name: 'description', content: ru.meta.description },
+        { name: 'theme-color', content: APP_META.themeColor },
+        { name: 'viewport', content: APP_META.viewport },
       ],
-      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/images/lumi.svg' }],
+      link: [{ rel: 'icon', type: 'image/svg+xml', href: ASSETS.hero }],
     },
   },
   typescript: {
